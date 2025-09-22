@@ -1,0 +1,6 @@
+openai>=1.30.0
+langchain>=0.2.0
+pymunk>=6.6.0
+pydantic>=2.6.0
+jsonschema>=4.22.0
+matplotlib>=3.8.0

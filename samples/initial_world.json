@@ -1,0 +1,11 @@
+{
+  "environment": { "dimensions": "2D", "gravity": [0, -9.81], "time_step": 0.01, "duration": 5.0 },
+  "objects": [
+    { "id": "floor", "type": "plane", "initial_state": { "position": [0, 0], "velocity": [0, 0] }, "static": true },
+    { "id": "table", "type": "table", "properties": { "size": [2.0, 0.1], "friction": 0.6 }, "initial_state": { "position": [0, 1.0], "velocity": [0, 0] }, "static": true },
+    { "id": "ball1", "type": "ball", "properties": { "radius": 0.1, "mass": 0.15, "restitution": 0.6, "friction": 0.5 }, "initial_state": { "position": [-0.2, 1.2], "velocity": [0, 0] } }
+  ],
+  "actions": [
+    { "target_id": "ball1", "type": "push", "params": { "force": [2.0, 0.0], "duration": 0.1 } }
+  ]
+}

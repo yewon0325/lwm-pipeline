@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SimulationWorld",
+  "type": "object",
+  "properties": {
+    "environment": {
+      "type": "object",
+      "properties": {
+        "dimensions": { "type": "string", "enum": ["2D"] },
+        "gravity": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2, "maxItems": 2
+        },
+        "time_step": { "type": "number", "minimum": 0.001, "maximum": 0.1 },
+        "duration": { "type": "number", "minimum": 0.01, "maximum": 60 }
+      },
+      "required": ["dimensions","gravity","time_step","duration"]
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["ball","box","plane","table"] },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "radius": { "type": "number", "minimum": 0 },
+              "size": {
+                "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2
+              },
+              "mass": { "type": "number", "minimum": 0 },
+              "restitution": { "type": "number", "minimum": 0, "maximum": 1 },
+              "friction": { "type": "number", "minimum": 0, "maximum": 2 }
+            }
+          },
+          "initial_state": {
+            "type": "object",
+            "properties": {
+              "position": {
+                "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2
+              },
+              "velocity": {
+                "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2
+              }
+            },
+            "required": ["position","velocity"]
+          },
+          "static": { "type": "boolean" }
+        },
+        "required": ["id","type","initial_state"]
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_id": { "type": "string" },
+          "type": { "type": "string", "enum": ["push","drop","apply_force"] },
+          "params": { "type": "object" }
+        },
+        "required": ["type"]
+      }
+    }
+  },
+  "required": ["environment","objects"]
+}
