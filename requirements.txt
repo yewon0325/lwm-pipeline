@@ -4,3 +4,4 @@ pymunk>=6.6.0
 pydantic>=2.6.0
 jsonschema>=4.22.0
 matplotlib>=3.8.0
+pybullet>=3.2.5

@@ -1,53 +1,71 @@
-# run_cli.py
 import json
-from src.llm_parser import natural_language_to_world
+from src.llm_parser import natural_language_to_world, sanitize_world_state
+from src.memory_engine import WorldMemory
 from src.validate import validate_world
 from src.types import World
-from src.physics_pymunk import run as run_simulation
-from src.reporting import summarize, plot_trajectories
+from src.physics_pybullet import run_simulation_pybullet
+from src.reporting import summarize
+from src.motion_mapper import map_action_to_physics
+
+
+
 
 def main():
-    print("===== 대화형 물리 시뮬레이션 =====")
-    print("명령을 입력하세요. (예: '테이블 위에 탱탱볼을 올려줘')")
-    print("종료하려면 '종료' 또는 'exit'를 입력하세요.")
-    
-    world_state = None  # 초기 월드 상태는 비어있음
+    print("===== 3D 대화형 물리 시뮬레이션 =====")
+    memory = WorldMemory()
 
     while True:
         try:
-            prompt = input("\n[USER] > ")
+            prompt = input("\n[USER] > ").strip()
             if prompt.lower() in ["종료", "exit"]:
-                print("시뮬레이션을 종료합니다.")
+                print("\n[INFO] 프로그램 종료 중... 메모리 초기화 및 파일 삭제.")
+                memory.reset()
                 break
 
-            # 1) LLM 호출 (이전 상태를 컨텍스트로 제공)
-            world_json = natural_language_to_world(prompt, world_state)
-            
+
+            current_state = memory.state
+            new_world = natural_language_to_world(prompt, world_state=current_state)
+            # ✅ actions를 먼저 물리 파라미터로 반영
+            actions = new_world.get("actions", [])
+            if actions:
+                obj_map = {o["id"]: o for o in new_world.get("objects", [])}
+                for act in actions:
+                    tid = act.get("target_id")
+                    if tid and tid in obj_map:
+                        phys = map_action_to_physics(act, obj_map[tid])
+                        init = obj_map[tid].setdefault("initial_state", {})
+                        if "velocity" in phys:
+                            init["velocity"] = phys["velocity"]
+                        if "angular_velocity" in phys:
+                            init["angular_velocity"] = phys["angular_velocity"]
+                        # 마찰/반발 등은 상위에 기록
+                        for k in ("restitution", "friction", "rolling_friction"):
+                            if k in phys:
+                                obj_map[tid][k] = phys[k]
+
+            new_world = sanitize_world_state(new_world)
+
             print("\n[LLM] > 생성된 World JSON:")
-            print(json.dumps(world_json, ensure_ascii=False, indent=2))
+            print(json.dumps(new_world, ensure_ascii=False, indent=2))
 
-            # 2) 스키마 검증 및 Pydantic 모델 변환
-            validate_world(world_json)
-            world = World.model_validate(world_json)
+            updated = memory.apply_update(new_world)
+            print("\n[MEMORY] > 누적된 World State:")
+            print(json.dumps(updated, ensure_ascii=False, indent=2))
 
-            # 3) 시뮬레이션 실행
-            sim_out = run_simulation(world)
+            try:
+                world = World.model_validate(new_world)
+            except Exception as e:
+                print(f"[ERROR] World 구조 검증 실패: {e}")
+                continue
 
-            # 4) 결과 리포팅
-            summary = summarize(sim_out) # reporting.py의 summarize를 그대로 사용
-            out_path = plot_trajectories(sim_out, out_path="trajectory.png")
-            
+            sim_out = run_simulation_pybullet(world, show_gui=True)
+            summary = summarize(sim_out)
             print("\n[SYSTEM] > 시나리오 요약:")
             for obj_id, narrative in summary.items():
                 print(narrative)
-            print(f"궤적 이미지 저장 완료: {out_path}")
-
-            # 5) 다음 루프를 위해 월드 상태 업데이트
-            world_state = sim_out["final_state"]
 
         except Exception as e:
             print(f"\n[ERROR] 오류가 발생했습니다: {e}")
-            # 오류 발생 시 월드 상태를 초기화하지 않고 계속 진행
             continue
 
 if __name__ == "__main__":

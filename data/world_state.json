@@ -1,0 +1,67 @@
+{
+  "objects": [
+    {
+      "id": "ball_1",
+      "type": "ball",
+      "initial_state": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "velocity": [
+          -1.4,
+          -1.4,
+          0.0
+        ],
+        "mass": 1.0,
+        "angular_velocity": [
+          0.0,
+          -14.003550051530945,
+          0.0
+        ]
+      },
+      "restitution": 0.6,
+      "rolling_friction": 0.02
+    },
+    {
+      "id": "ground_plane",
+      "type": "plane",
+      "initial_state": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mass": 1.0
+      }
+    }
+  ],
+  "environment": {
+    "gravity": [
+      0.0,
+      0.0,
+      -9.81
+    ],
+    "wind": {
+      "direction": [
+        -1.0,
+        -1.0,
+        0.0
+      ],
+      "strength": 6.0
+    },
+    "temperature": 298.0,
+    "pressure": 101325.0,
+    "air_density": 1.225,
+    "drag_coefficient": 0.47,
+    "humidity": 0.5,
+    "time_step": 0.01,
+    "duration": 5.0
+  }
+}
