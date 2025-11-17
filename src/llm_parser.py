@@ -122,3 +122,43 @@ def sanitize_world_state(world: dict) -> dict:
         world["actions"] = []
 
     return world
+
+#motion action을 물리 파라미터로 매핑(통합)
+
+def map_action_to_physics(action: dict, obj: dict) -> dict:
+    import math
+    t = (action.get("type") or "").lower()
+    mag = float(action.get("magnitude", 1.0))
+    dx, dy, dz = [float(d) for d in action.get("direction", [0, 0, 0])]
+
+    cross_section = obj.get("cross_section", 0.0314)
+    r = math.sqrt(max(cross_section, 1e-6) / math.pi)
+
+    if t == "throw": # 던지기
+        return {"velocity": [dx*mag*5, dy*mag*5, dz*mag*5],
+                "angular_velocity":[dy*2, -dx*2,0], "restitution":0.6}
+
+    if t == "roll": # 구르기
+        vx, vy = dx*mag*2, dy*mag*2
+        return {"velocity":[vx,vy,0], "angular_velocity":[0,(vx/r) if r>0 else 0,0],
+                "rolling_friction":0.02}
+
+    if t == "stop": # 정지
+        return {"velocity":[0,0,0], "angular_velocity":[0,0,0]}
+    
+    if t == "vacuum": # 진공 상태
+        return {
+            "_env_update": {
+                "air_density": 0.0,
+                "drag_coefficient": 0.0,
+                "wind": {"direction":[0,0,0], "strength":0.0}
+            }
+    }
+    
+    if t == "drop": #낙하
+        return {
+            "velocity": [0.0, 0.0, -0.1],  # 살짝만 음수, 중력에 의해 가속됨
+            "restitution": 0.3
+        }
+
+    return {}
