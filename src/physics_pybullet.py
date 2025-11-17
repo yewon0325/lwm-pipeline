@@ -2,14 +2,37 @@
 import pybullet as p
 import pybullet_data
 import time, math, random
-from .types import World
+from .types import World  # 네가 쓰는 World 모델
+
+_GUI_CID = None  # GUI 연결 재사용용 전역 변수
+
+
+def _get_connection(show_gui: bool):
+    """GUI 모드면 하나의 창을 재사용하고, DIRECT면 매번 새로 연결"""
+    global _GUI_CID
+
+    if show_gui:
+        if _GUI_CID is None or not p.isConnected(_GUI_CID):  # GUI가 없으면 새로 연결
+            _GUI_CID = p.connect(p.GUI)
+        cid = _GUI_CID
+    else:
+        cid = p.connect(p.DIRECT)
+
+    p.resetSimulation()  # 이전 장면 초기화
+    return cid
+
 
 def run_simulation_pybullet(world: World, show_gui: bool = True):
     """물리 기반 PyBullet 시뮬레이션 (공기저항, 진공, 바람, 마찰, 각속도 포함)"""
-    # ✅ 시뮬레이터 연결
-    cid = p.connect(p.GUI if show_gui else p.DIRECT)
+    cid = _get_connection(show_gui)  # ✅ 연결/리셋
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(*world.environment.gravity)
+
+    # ✅ GUI 설정 (좌측 프리뷰 끄기)
+    if show_gui:
+        p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
 
     # ✅ 환경 변수 설정
     R = 287.05
@@ -31,6 +54,7 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
     p.changeDynamics(ground_id, -1, restitution=0.3, lateralFriction=0.8)
 
     id_map = {}
+    follow_body = None  # 카메라가 따라갈 대상(첫 번째 공)
 
     # ✅ 객체 생성
     for obj in world.objects:
@@ -87,7 +111,6 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
         if ang_v is not None:
             p.resetBaseVelocity(body, linearVelocity=lin_v, angularVelocity=ang_v)
         else:
-            # 공이며 선속도가 있으면 ω = v/r 가정
             if obj.type == "ball":
                 if abs(lin_v[0]) + abs(lin_v[1]) + abs(lin_v[2]) > 1e-6:
                     omega = [0.0, (lin_v[0] / r) if r > 0 else 0.0, 0.0]
@@ -98,6 +121,10 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
                 p.resetBaseVelocity(body, linearVelocity=lin_v)
 
         id_map[obj.id] = {"body": body, "area": cross_section}
+
+        # ✅ 첫 번째 공을 카메라 추적 대상으로 설정
+        if obj.type == "ball" and follow_body is None:
+            follow_body = body
 
     # ✅ 시뮬레이션 루프
     for _ in range(steps):
@@ -127,6 +154,21 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
                 pass
 
         p.stepSimulation()
+
+        # ✅ 카메라가 공을 따라다니도록 갱신
+        if show_gui and follow_body is not None:
+            try:
+                pos, _ = p.getBasePositionAndOrientation(follow_body)
+                cam_target = list(pos)
+                p.resetDebugVisualizerCamera(
+                    cameraDistance=2.0,
+                    cameraYaw=45,
+                    cameraPitch=-30,
+                    cameraTargetPosition=cam_target
+                )
+            except Exception:
+                pass
+
         if show_gui:
             time.sleep(time_step)
 
@@ -141,5 +183,8 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
             obj.initial_state.orientation = list(orn)
             obj.initial_state.velocity = list(vel)
 
-    p.disconnect(cid)
+    # GUI 모드는 창 유지, DIRECT 모드만 끊기
+    if not show_gui:
+        p.disconnect(cid)
+
     return {"final_state": final.model_dump(), "world": world}
