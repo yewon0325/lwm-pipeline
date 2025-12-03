@@ -1,0 +1,49 @@
+{
+  "objects": [
+    {
+      "id": "box_1",
+      "type": "box",
+      "initial_state": {
+        "position": [
+          74.78112724057739,
+          -1.284483209556349e-06,
+          0.2782191799314155
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          -2.0
+        ],
+        "mass": 5.0,
+        "orientation": [
+          1.0699685419035841e-05,
+          0.9358429640379914,
+          2.7174295270439658e-05,
+          -0.35241728931433147
+        ]
+      }
+    }
+  ],
+  "environment": {
+    "gravity": [
+      0.0,
+      0.0,
+      -9.81
+    ],
+    "wind": {
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "strength": 100.0
+    },
+    "time_step": 0.01,
+    "duration": 15.0,
+    "temperature": 298.0,
+    "pressure": 101325.0,
+    "air_density": 1.225,
+    "drag_coefficient": 0.47,
+    "humidity": 0.5
+  }
+}

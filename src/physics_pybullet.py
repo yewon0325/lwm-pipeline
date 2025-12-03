@@ -54,7 +54,7 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
     p.changeDynamics(ground_id, -1, restitution=0.3, lateralFriction=0.8)
 
     id_map = {}
-    follow_body = None  # 카메라가 따라갈 대상(첫 번째 공)
+    follow_body = None  # 카메라가 따라갈 대상(첫 번째 동적 객체)
 
     # ✅ 객체 생성
     for obj in world.objects:
@@ -122,8 +122,8 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
 
         id_map[obj.id] = {"body": body, "area": cross_section}
 
-        # ✅ 첫 번째 공을 카메라 추적 대상으로 설정
-        if obj.type == "ball" and follow_body is None:
+        # ✅ 첫 번째 동적 객체(plane 제외)를 카메라 추적 대상으로 설정
+        if follow_body is None and mass > 0:
             follow_body = body
 
     # ✅ 시뮬레이션 루프
@@ -155,7 +155,7 @@ def run_simulation_pybullet(world: World, show_gui: bool = True):
 
         p.stepSimulation()
 
-        # ✅ 카메라가 공을 따라다니도록 갱신
+        # ✅ 카메라가 추적 대상 객체를 따라다니도록 갱신
         if show_gui and follow_body is not None:
             try:
                 pos, _ = p.getBasePositionAndOrientation(follow_body)
